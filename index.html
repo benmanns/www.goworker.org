@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+
+    <title>goworker</title>
+    <meta name="description" content="goworker is a Go-based background worker that runs 10x faster than Ruby-based workers." />
+    <meta name="author" content="Benjamin Manns" />
+
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+    <link rel="icon" sizes="16x16 32x32" href="/favicon.ico" />
+    <!--[if IE]><link rel="shortcut icon" href="/favicon.ico" /><![endif]-->
+
+    <meta property="og:image" content="http://www.goworker.org/assets/goworker-worker-blue.png" />
+
+    <link rel="stylesheet" href="/bower_components/bootstrap/dist/css/bootstrap.css" />
+    <link rel="stylesheet" href="/assets/pygments.css" />
+    <link rel="stylesheet" href="/assets/application.css" />
+  </head>
+  <body>
+    <div class="container">
+      <div class="row">
+        <div class="col-lg-12">
+          <img id="logo" src="/assets/goworker-trans.png" width="502" height="154" alt="a gopher with a ruby in a wheelbarrow next to the text goworker" />
+        </div>
+      </div>
+      <div class="row">
+        <div class="col-lg-12">
+          <p class="lead">goworker is a Go-based background worker that runs 10 to 100,000<a id="sleep-footnote" href="#how-fast-is-it">*</a> times faster than Ruby-based workers.
+          </p>
+          <p class="lead">goworker is compatible with Resque, so you can push your jobs with Rails and Resque, and consume them with Go in the background.</p>
+          </p>
+        </div>
+      </div>
+      <div class="row instructions">
+        <div class="col-lg-4">
+          <h2 id="install-it">Install It</h2>
+          <p>Install goworker.</p>
+          <div class="highlight"><pre>go get github.com/benmanns/goworker
+</pre></div>
+          <p>Make a <code>worker.go</code> file.</p>
+          <div class="highlight"><pre><span class="kn">package</span> <span class="nx">main</span>
+
+<span class="kn">import</span> <span class="p">(</span>
+  <span class="s">&quot;fmt&quot;</span>
+  <span class="s">&quot;github.com/benmanns/goworker&quot;</span>
+<span class="p">)</span>
+
+<span class="kd">func</span> <span class="nx">main</span><span class="p">()</span> <span class="p">{</span>
+  <span class="k">if</span> <span class="nx">err</span> <span class="o">:=</span> <span class="nx">goworker</span><span class="p">.</span><span class="nx">Work</span><span class="p">();</span> <span class="nx">err</span> <span class="o">!=</span> <span class="kc">nil</span> <span class="p">{</span>
+    <span class="nx">fmt</span><span class="p">.</span><span class="nx">Println</span><span class="p">(</span><span class="s">&quot;Error:&quot;</span><span class="p">,</span> <span class="nx">err</span><span class="p">)</span>
+  <span class="p">}</span>
+<span class="p">}</span>
+</pre></div>
+        </div>
+        <div class="col-lg-4">
+          <h2 id="call-it">Call It</h2>
+        <p>Create your <code>hello_worker.go</code></p>
+        <div class="highlight"><pre><span class="kn">package</span> <span class="nx">main</span>
+
+<span class="kn">import</span> <span class="p">(</span>
+  <span class="s">&quot;fmt&quot;</span>
+  <span class="s">&quot;github.com/benmanns/goworker&quot;</span>
+<span class="p">)</span>
+
+<span class="kd">func</span> <span class="nx">init</span><span class="p">()</span> <span class="p">{</span>
+  <span class="nx">goworker</span><span class="p">.</span><span class="nx">Register</span><span class="p">(</span><span class="s">&quot;Hello&quot;</span><span class="p">,</span> <span class="nx">helloWorker</span><span class="p">)</span>
+<span class="p">}</span>
+
+<span class="kd">func</span> <span class="nx">helloWorker</span><span class="p">(</span><span class="nx">queue</span> <span class="kt">string</span><span class="p">,</span> <span class="nx">args</span> <span class="o">...</span><span class="kd">interface</span><span class="p">{})</span> <span class="kt">error</span> <span class="p">{</span>
+  <span class="nx">fmt</span><span class="p">.</span><span class="nx">Println</span><span class="p">(</span><span class="s">&quot;Hello, world!&quot;</span><span class="p">)</span>
+  <span class="k">return</span> <span class="kc">nil</span>
+<span class="p">}</span>
+</pre></div>
+        <p>And use Resque from your Ruby application</p>
+        <div class="highlight"><pre><span class="k">class</span> <span class="nc">Hello</span>
+  <span class="vi">@queue</span> <span class="o">=</span> <span class="ss">:hello</span>
+<span class="k">end</span>
+
+<span class="no">Resque</span><span class="o">.</span><span class="n">enqueue</span><span class="p">(</span><span class="no">Hello</span><span class="p">)</span>
+</pre></div>
+        </div>
+        <div class="col-lg-4">
+          <h2 id="run-it">Run It</h2>
+          <p>Build your worker</p>
+          <div class="highlight"><pre>go build</pre></div>
+          <p>And run it!</p>
+          <div class="highlight"><pre>./worker -queues<span class="o">=</span>hello
+</pre></div>
+        </div>
+      </div>
+      <div class="row">
+        <div class="col-lg-12">
+          <h2 id="how-fast-is-it">How fast is it?</h2>
+          <p>goworker is typically around 70x faster than Resque and 10x faster than Sidekiq.</p>
+        </div>
+      </div>
+      <div class="row">
+        <div class="col-lg-12">
+          <ul class="nav nav-tabs" id="benchmark-tabs">
+            <li class="active"><a data-target="#hello">Hello World</a></li>
+            <li><a data-target="#multiply">Computation Heavy</a></li>
+            <li><a data-target="#sleep">High Wait Time</a></li>
+            <li><a data-target="#insert">Database Insert</a></li>
+          </ul>
+
+          <div class="tab-content">
+            <div class="tab-pane active" id="hello">
+              <h3>Hello World</h3>
+              <div class="row">
+                <div class="col-lg-4">
+                  <p>For simple dequeuing, deserialization, execution, and updating stats (as with the Hello worker above), goworker is <span class="computation" data-dataset="hello" data-a="goworker" data-b="resque"></span> faster than Resque and <span class="computation" data-dataset="hello" data-a="goworker" data-b="sidekiq"></span> faster than Sidekiq.</p>
+                  <p>Additionally, goworker only used 7MB of memory, while Sidekiq used 74MB and Resque 62MB.</p>
+                </div>
+                <div class="col-lg-4">
+                  <div class="highlight"><pre><span class="nb">puts</span> <span class="s2">&quot;Hello World!&quot;</span>
+</pre></div>
+                </div>
+                <div class="col-lg-4">
+                  <div class="graph-wrapper">
+                    <h3>Seconds for N jobs</h3>
+                    <div class="placeholder" data-dataset="hello"></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="tab-pane" id="multiply">
+              <h3>Computation Heavy</h3>
+              <div class="row">
+                <div class="col-lg-4">
+                  <p>For a 20x20 matrix multiplication operation, goworker is <span class="computation" data-dataset="multiply" data-a="goworker" data-b="resque"></span> faster than Resque and <span class="computation" data-dataset="multiply" data-a="goworker" data-b="sidekiq"></span> faster than Sidekiq.</p>
+                </div>
+                <div class="col-lg-4">
+                  <div class="highlight"><pre><span class="n">a</span> <span class="o">=</span> <span class="no">Matrix</span><span class="o">[.</span><span class="n">.</span><span class="o">.]</span>
+<span class="n">b</span> <span class="o">=</span> <span class="no">Matrix</span><span class="o">[.</span><span class="n">.</span><span class="o">.]</span>
+<span class="n">c</span> <span class="o">=</span> <span class="n">a</span> <span class="o">*</span> <span class="n">b</span>
+<span class="nb">puts</span> <span class="n">a</span> <span class="o">*</span> <span class="n">b</span>
+</pre></div>
+                </div>
+                <div class="col-lg-4">
+                  <div class="graph-wrapper">
+                    <h3>Seconds for N jobs</h3>
+                    <div class="placeholder" data-dataset="multiply"></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="tab-pane" id="sleep">
+              <h3>High Wait Time</h3>
+              <div class="row">
+                <div class="col-lg-4">
+                  <p>For high latency jobs, goworker (at concurrency 25) is <span class="computation" data-dataset="sleep" data-a="goworker" data-b="resque"></span> faster than Resque and <span class="computation" data-dataset="sleep" data-a="goworker" data-b="sidekiq"></span> faster than Sidekiq (at concurrency 25).</p>
+                  <p>However, because goworker threads are so cheap, it is feasible to run 100,000 concurrent workers on a single 4GB machine, each sharing a single Redis connection. This gives goworker the theoretical 100,000x boost over Resque and 20,000x over Sidekiq.</p>
+                </div>
+                <div class="col-lg-4">
+                  <div class="highlight"><pre><span class="nb">sleep</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+</pre></div>
+                </div>
+                <div class="col-lg-4">
+                  <div class="graph-wrapper">
+                    <h3>Seconds for N jobs</h3>
+                    <div class="placeholder" data-dataset="sleep"></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="tab-pane" id="insert">
+              <h3>Database Insert</h3>
+              <div class="row">
+                <div class="col-lg-4">
+                  <p>For a worker that inserts records into a Postgres database, goworker is <span class="computation" data-dataset="insert" data-a="goworker" data-b="resque"></span> faster than Resque and <span class="computation" data-dataset="insert" data-a="goworker" data-b="sidekiq"></span> faster than Sidekiq (at concurrency 25).</p>
+                </div>
+                <div class="col-lg-4">
+<div class="highlight"><pre><span class="no">Contact</span><span class="o">.</span><span class="n">create!</span><span class="p">({</span>
+  <span class="ss">name</span><span class="p">:</span> <span class="n">name</span><span class="p">,</span>
+  <span class="ss">email</span><span class="p">:</span> <span class="n">email</span><span class="p">,</span>
+  <span class="ss">phone</span><span class="p">:</span> <span class="n">phone</span><span class="p">,</span>
+<span class="p">})</span>
+</pre></div>
+                </div>
+                <div class="col-lg-4">
+                  <div class="graph-wrapper">
+                    <h3>Seconds for N jobs</h3>
+                    <div class="placeholder" data-dataset="insert"></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="row">
+        <div class="col-lg-12">
+          <h2 id="whos-it-for">Who's it for?</h2>
+          <p>goworker is for people who are currently running more than two servers or dynos for their background workers. For those who are not running background jobs, yet, starting with goworker may be a case of premature optimization. For those instances, I recommend starting with a Ruby background worker library like <a href="http://sidekiq.org/">Sidekiq</a> or <a href="https://github.com/resque/resque">Resque</a>. With these, you will get all the benefits of your existing models and libraries. Use goworker when you're sure that you need the extra speed boost.</p>
+        </div>
+      </div>
+      <div class="row">
+        <div class="col-lg-12">
+          <h2 id="getting-started">Getting Started</h2>
+          <p>To get started with goworker, check out the <a href="https://github.com/benmanns/goworker/wiki/Getting-Started#wiki-wrapper">getting started guides</a> on the wiki.</p>
+          <p>For more information, updates, tips, and free one-on-one help getting started, sign up for the email list.</p>
+          <div class="row">
+            <div class="col-lg-4 col-offset-4">
+              <form accept-charset="UTF-8" action="https://www.sendicate.net/subscribe/a3gp7r" method="post">
+                <div class="input-group">
+                  <input id="subscriber_email" name="subscriber[email]" type="email" class="form-control" placeholder="you@example.com" />
+                  <span class="input-group-btn">
+                    <button class="btn btn-default" name="commit" type="submit">Get Free Help</button>
+                  </span>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="row">
+        <div class="col-lg-12">
+          <h2 id="created-by">Created by</h2>
+          <p>goworker is maintained by <a href="http://www.benmanns.com/">Benjamin Manns</a> and <a href="https://github.com/benmanns/goworker/graphs/contributors">community contributors</a>.</p>
+        </div>
+      </div>
+    </div>
+    <a href="https://github.com/benmanns/goworker">
+      <img style="position: absolute; top: 0; right: 0; border: 0;" src="https://s3.amazonaws.com/github/ribbons/forkme_right_red_aa0000.png" alt="Fork me on GitHub" />
+    </a>
+    <div class="modal fade" id="subscription-modal" tabindex="-1" role="dialog" aria-hidden="true">
+      <div class="modal-dialog">
+        <div class="modal-content">
+          <div class="modal-header">
+            <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+            <h4 class="modal-title">Thanks for subscribing!</h4>
+          </div>
+          <div class="modal-body">
+            Thanks for subscribing. Check your inbox for an confirmation email.
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <script src="/bower_components/jquery/jquery.js"></script>
+    <script src="/bower_components/bootstrap/dist/js/bootstrap.js"></script>
+    <script src="/bower_components/flot/jquery.flot.js"></script>
+    <script src="/assets/application.js"></script>
+  </body>
+</html>
